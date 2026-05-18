@@ -1,0 +1,56 @@
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# Python 编译产物
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+
+# 分发 / 打包
+dist/
+build/
+*.egg-info/
+*.egg
+
+# 测试 & 覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS / Windows 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+logs/
+
+# 数据 & 向量库本地文件
+data/
+*.db
+*.sqlite3
+
+# Docker
+.dockerignore
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+novelagent.pid

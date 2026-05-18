@@ -1,0 +1,33 @@
+# LangGraph + LangChain
+langgraph
+langchain
+langchain-openai
+
+# Web Framework
+fastapi
+uvicorn[standard]
+python-multipart
+
+# AI / LLM
+openai
+tiktoken
+
+# Data
+pydantic
+pydantic-settings
+sqlalchemy
+
+# Vector store (lazy-loaded, optional)
+chromadb
+sentence-transformers
+
+# Utils
+python-dotenv
+tenacity
+loguru
+httpx
+
+minio
+
+# Dev
+pytest

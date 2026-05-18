@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novel Agent V2 — AI 小说创作平台</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d2e; --border: #2a2d3e;
+    --accent: #6c63ff; --accent2: #ff6584; --success: #48bb78;
+    --warn: #ed8936; --text: #e2e8f0; --muted: #718096;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex; flex-direction: column; }
+  header { flex-shrink: 0; background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; }
+  header h1 { font-size: 1.4rem; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .badge { background: var(--accent); color: white; padding: 2px 8px; border-radius: 12px;
+    font-size: 0.75rem; }
+  .layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
+  aside { background: var(--card); border-right: 1px solid var(--border); padding: 1rem; overflow-y: auto; }
+  aside h3 { color: var(--muted); font-size: 0.75rem; text-transform: uppercase;
+    letter-spacing: 1px; margin: 1rem 0 0.5rem; }
+  main { padding: 1.5rem; overflow-y: auto; }
+  .btn { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 0.875rem; font-weight: 500; transition: opacity .2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn:disabled:hover { opacity: 0.4; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-danger { background: var(--accent2); color: white; }
+  .btn-success { background: var(--success); color: white; }
+  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+  .card h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem; text-align: center; }
+  .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+  .novel-item { padding: 0.75rem; border-radius: 6px; cursor: pointer;
+    transition: background .15s; margin-bottom: 4px; }
+  .novel-item:hover, .novel-item.active { background: rgba(108, 99, 255, 0.15); }
+  .novel-item .name { font-weight: 500; font-size: 0.9rem; }
+  .novel-item .meta { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 0.7rem; font-weight: 600; }
+  .status-writing { background: rgba(72,187,120,.2); color: var(--success); }
+  .status-init { background: rgba(108,99,255,.2); color: var(--accent); }
+  .status-done { background: rgba(113,128,150,.2); color: var(--muted); }
+  .status-paused { background: rgba(237,137,54,.2); color: var(--warn); }
+  .status-completed { background: rgba(255,215,0,.2); color: #ffd700; }
+  input, textarea, select { background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 0.5rem 0.75rem; border-radius: 6px; width: 100%;
+    font-size: 0.875rem; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+  label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; margin-top: 0.75rem; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .chapter-list { max-height: 400px; overflow-y: auto; }
+  .chapter-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem;
+    border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .chapter-item:last-child { border-bottom: none; }
+  .ch-no { color: var(--muted); min-width: 40px; }
+  .ch-title { flex: 1; }
+  .ch-words { color: var(--muted); font-size: 0.75rem; }
+  .ch-status { font-size: 0.75rem; }
+  .progress-bar { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-fill { background: linear-gradient(90deg, var(--accent), var(--accent2));
+    height: 100%; transition: width .3s; }
+  .fshadow-list { max-height: 520px; overflow-y: auto; }
+  .fshadow-filter-bar { display:flex; gap:.5rem; margin-bottom:.75rem; flex-wrap:wrap; }
+  .fshadow-filter-btn { font-size:.72rem; padding:3px 12px; border-radius:20px;
+    background:transparent; border:1px solid var(--border); color:var(--muted); cursor:pointer; transition:.15s; }
+  .fshadow-filter-btn:hover { border-color:var(--accent); color:var(--text); }
+  .fshadow-filter-btn.active { background:rgba(108,99,255,.2); border-color:var(--accent); color:var(--accent); font-weight:600; }
+  .fshadow-filter-btn.btn-all.active { background:rgba(108,99,255,.2); }
+  .fshadow-filter-btn.btn-ACTIVE.active { background:rgba(108,99,255,.15); border-color:var(--accent); color:var(--accent); }
+  .fshadow-filter-btn.btn-DUE.active { background:rgba(246,173,85,.12); border-color:var(--warn); color:var(--warn); }
+  .fshadow-filter-btn.btn-BURIED.active { background:rgba(255,255,255,.05); border-color:var(--muted); color:var(--muted); }
+  .fshadow-filter-btn.btn-RESOLVED.active { background:rgba(72,187,120,.1); border-color:var(--success); color:var(--success); }
+  .fshadow-item { padding: 0.6rem; border-left: 3px solid var(--border);
+    margin-bottom: 0.5rem; font-size: 0.82rem; }
+  .fshadow-item.BURIED { border-color: var(--muted); }
+  .fshadow-item.ACTIVE { border-color: var(--accent); }
+  .fshadow-item.DUE { border-color: var(--warn); }
+  .fshadow-item.RESOLVED { border-color: var(--success); opacity: 0.6; }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 1rem; }
+  .tab { padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+    color: var(--muted); background: none; border: none; }
+  .tab.active { background: rgba(108,99,255,.2); color: var(--accent); }
+  .metric-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .metric-label { width: 80px; font-size: 0.8rem; color: var(--muted); }
+  .metric-track { flex: 1; background: var(--border); border-radius: 3px; height: 8px; overflow: hidden; }
+  .metric-fill { height: 100%; border-radius: 3px; }
+  .m-engagement { background: var(--accent); }
+  .m-tension { background: var(--accent2); }
+  .m-drop { background: var(--warn); }
+  .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--card);
+    border: 1px solid var(--border); padding: 0.75rem 1.25rem; border-radius: 8px;
+    animation: slideIn .3s ease; z-index: 999; max-width: 300px; }
+  @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  .empty { text-align: center; color: var(--muted); padding: 2rem; font-size: 0.9rem; }
+  .log-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.75rem; max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace;
+    font-size: 0.75rem; color: var(--muted); margin-top: 1rem; }
+  .log-line { margin: 2px 0; }
+  /* ── 统一滚动条样式 ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .btn-warning { background: var(--warn); color: white; }
+  .stop-btn { display: inline-flex; align-items: center; gap: 6px; }
+  .stop-btn .spinner { width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.3);
+    border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; display: none; }
+  .stop-btn.loading .spinner { display: inline-block; }
+  .stop-btn.loading span { opacity: .7; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .task-info { font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    z-index: 100; align-items: center; justify-content: center; }
+  #modal-overlay.show { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.5rem; width: 90%; max-width: 520px; }
+  .modal h3 { margin-bottom: 1rem; }
+  .modal-footer { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
+  /* ── Bottom Log Panel ── */
+  #devlog-panel { flex-shrink: 0; background: #0a0c14; border-top: 2px solid var(--border);
+    display: flex; flex-direction: column; transition: height .25s ease; height: 0; overflow: hidden; }
+  #devlog-panel.open { height: 240px; }
+  #devlog-toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 10px;
+    background: #111425; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  #devlog-toolbar span { font-size: .75rem; color: var(--muted); font-weight: 600; letter-spacing: .5px; }
+  #devlog-toolbar .devlog-close { margin-left: auto; font-size: .75rem; cursor: pointer;
+    color: var(--muted); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border);
+    background: transparent; }
+  #devlog-toolbar .devlog-close:hover { color: var(--text); }
+  #devlog-toolbar .devlog-filter { font-size: .72rem; padding: 2px 8px; border-radius: 4px;
+    background: transparent; border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
+  #devlog-toolbar .devlog-filter.active { background: rgba(108,99,255,.25); color: var(--accent); border-color: var(--accent); }
+  #devlog-content { flex: 1; overflow-y: auto; padding: 4px 10px; font-family: 'Courier New', monospace;
+    font-size: .73rem; }
+  .devlog-line { display: flex; gap: 8px; padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,.03); }
+  .devlog-line .dl-time { color: #5a6075; min-width: 56px; flex-shrink: 0; }
+  .devlog-line .dl-msg { color: #a0aec0; word-break: break-all; }
+  .devlog-line.dl-error .dl-msg { color: #fc8181; }
+  .devlog-line.dl-warn .dl-msg  { color: #f6ad55; }
+  .devlog-line.dl-info .dl-msg  { color: #a0aec0; }
+  /* Log toggle button in header */
+  #log-toggle-btn { font-size: .8rem; padding: 4px 12px; }
+  /* Fixed bottom-left log toggle */
+  #log-fab { position: fixed; bottom: 1rem; left: 1rem; z-index: 200;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 14px; font-size: .78rem; color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    transition: color .15s, border-color .15s; }
+  #log-fab:hover { color: var(--text); border-color: var(--accent); }
+  #log-fab.active { color: var(--accent); border-color: var(--accent); }
+
+  /* ── Mobile hamburger button (hidden on desktop) ── */
+  #mobile-menu-btn {
+    display: none; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  /* Sidebar slide-over overlay */
+  #sidebar-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    z-index: 149; opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  #sidebar-overlay.show { opacity: 1; pointer-events: auto; }
+
+  /* ── Mobile responsive ── */
+  @media (max-width: 768px) {
+    html, body { height: auto; overflow: auto; }
+
+    header { padding: .65rem 1rem; gap: .6rem; }
+    header h1 { font-size: 1rem; }
+    .badge { display: none; }
+    #health-indicator { font-size: .7rem; }
+    #mobile-menu-btn { display: flex; }
+
+    .layout { display: block; overflow: visible; }
+
+    aside {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 280px;
+      z-index: 150; transform: translateX(-100%);
+      transition: transform .25s ease; padding-top: 56px;
+    }
+    aside.open { transform: translateX(0); }
+    #sidebar-overlay { display: block; }
+
+    main { padding: 1rem; }
+
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+
+    .tab-bar { flex-wrap: wrap; gap: 2px; }
+    .tab { padding: 5px 10px; font-size: .8rem; }
+
+    .card { padding: 1rem; }
+
+    .chapter-list { max-height: 280px; }
+    .fshadow-list { max-height: 320px; }
+
+    .modal { width: 96%; padding: 1.1rem; }
+
+    #chapter-overlay { padding: .5rem; align-items: flex-start; }
+
+    #log-fab { left: 50%; transform: translateX(-50%); bottom: .75rem; }
+    #devlog-panel.open { height: 200px; }
+
+    .stat-card .value { font-size: 1.5rem; }
+  }
+
+  @media (max-width: 400px) {
+    .btn { padding: .4rem .7rem; font-size: .8rem; }
+    header h1 { font-size: .9rem; }
+  }
+
+  /* ── Novel header action row ── */
+  .novel-header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+  .novel-action-btns { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  @media (max-width: 768px) {
+    .novel-header-row { flex-wrap: wrap; gap: .6rem; }
+    .novel-header-row > .novel-title-block { width: 100%; }
+    .novel-action-btns { width: 100%; gap: .4rem; }
+    .novel-action-btns .btn { flex: 1; min-width: 72px; font-size: .75rem;
+      padding: .4rem .3rem; text-align: center; }
+
+    /* Chapter modal: near-fullscreen on mobile */
+    #chapter-overlay {
+      padding: 0 !important;
+      align-items: stretch !important;
+      justify-content: stretch !important;
+    }
+    #chapter-overlay > div {
+      width: 100% !important; max-width: 100% !important;
+      border-radius: 0 !important; padding: .75rem !important;
+      display: flex; flex-direction: column;
+      height: 100vh; max-height: 100vh;
+    }
+    .ch-btn-row {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: .3rem !important; margin-bottom: .5rem !important;
+    }
+    .ch-btn-row .btn { font-size: .7rem !important; padding: 5px 2px !important; }
+    #ch-modal-content { max-height: none !important; flex: 1 !important;
+      font-size: .88rem !important; min-height: 0; }
+    .ch-modal-title-row { margin-bottom: .5rem !important; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <button id="mobile-menu-btn" onclick="toggleSidebar()" aria-label="菜单">☰</button>
+  <div>🧠</div>
+  <h1>Novel Agent V2</h1>
+  <span class="badge">AI 小说创作平台</span>
+  <div style="flex:1"></div>
+  <div id="health-indicator" style="font-size:.8rem;color:var(--muted)">检查连接...</div>
+  <button class="btn btn-primary" onclick="showNewNovelModal()">+ 新建</button>
+</header>
+
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <h3>我的小说</h3>
+    <div id="novel-list"><div class="empty">加载中...</div></div>
+  </aside>
+
+  <!-- Main Content -->
+  <main id="main-content">
+    <div id="welcome" class="card" style="text-align:center;padding:3rem">
+      <div style="font-size:3rem">🧠</div>
+      <h2 style="margin:1rem 0">Novel Agent V2</h2>
+      <p style="color:var(--muted);margin-bottom:1.5rem">
+        状态机驱动 · MCP事实约束 · LangGraph编排 · 百万字稳定生成
+      </p>
+      <button class="btn btn-primary" onclick="showNewNovelModal()">创建第一部小说</button>
+    </div>
+  </main>
+</div>
+
+<!-- New Novel Modal -->
+<div id="modal-overlay">
+  <div class="modal">
+    <h3>📚 新建小说</h3>
+    <label>标题</label>
+    <input id="novel-title" placeholder="例：星辰大海" />
+    <label>世界类型</label>
+    <select id="novel-type">
+      <option>玄幻</option><option>修仙</option><option>都市</option>
+      <option>科幻</option><option>武侠</option><option>穿越</option>
+    </select>
+    <label>总卷数</label>
+    <input id="novel-volumes" type="number" value="10" min="1" max="50" />
+    <label>LLM 模型</label>
+    <select id="novel-provider" style="width:100%;margin-bottom:.5rem">
+      <option value="">默认（.env配置）</option>
+      <option value="deepseek">DeepSeek（云端，快）</option>
+      <option value="ollama">本地 Qwen3.6（免费）</option>
+      <option value="qwen">千问 Qwen（云端）</option>
+    </select>
+    <label>故事描述（越详细越好）</label>
+    <textarea id="novel-desc" rows="5" placeholder="描述主角、世界观、故事主线、特殊设定..."></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="createNovel()">🚀 开始创作</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chapter Detail Modal -->
+<div id="chapter-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;width:90%;max-width:800px;padding:1.5rem;position:relative">
+    <div class="ch-modal-title-row" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div id="ch-modal-no" style="font-size:.75rem;color:var(--muted)"></div>
+        <h3 id="ch-modal-title" style="font-size:1.1rem;margin-top:2px;line-height:1.4"></h3>
+      </div>
+      <div style="display:flex;gap:.4rem;align-items:center;flex-shrink:0">
+        <span id="ch-modal-words" style="font-size:.78rem;color:var(--muted)"></span>
+        <span id="ch-modal-status"></span>
+      </div>
+    </div>
+    <div class="ch-btn-row" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">
+      <button class="btn btn-ghost" style="padding:4px 10px;font-size:.75rem" onclick="copyChapterTitle(this)" title="复制标题">复制标题</button>
+      <button class="btn btn-ghost" style="padding:4px 10px;font-size:.75rem" onclick="copyChapterContent(this)" title="复制正文">复制正文</button>
+      <button class="btn btn-ghost" style="padding:4px 10px;font-size:.75rem" id="ch-modal-edit" onclick="editChapterContent()">✏️ 编辑</button>
+      <button class="btn btn-ghost" style="padding:4px 10px;font-size:.75rem" onclick="showRewritePanel()">🔄 改写</button>
+      <button class="btn btn-ghost" style="padding:4px 10px;font-size:.75rem" id="ch-modal-regen">↺ 重生成</button>
+      <button class="btn btn-ghost" onclick="closeChapterModal()" style="padding:4px 10px;font-size:.75rem">✕ 关闭</button>
+    </div>
+    <div id="ch-modal-content" style="font-size:.9rem;line-height:2;color:var(--text);white-space:pre-wrap;max-height:70vh;overflow-y:auto;padding:1rem;background:var(--bg);border-radius:6px;border:1px solid var(--border)">加载中...</div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center">
+  <div class="modal" style="max-width:420px">
+    <h3 id="confirm-title">确认操作</h3>
+    <p id="confirm-msg" style="color:var(--muted);margin:1rem 0;line-height:1.6;font-size:.9rem"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeConfirm()">取消</button>
+      <button id="confirm-ok" class="btn btn-danger" onclick="">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reinit Modal -->
+<div id="reinit-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center">
+  <div class="modal" style="max-width:520px">
+    <h3>🔄 重新初始化</h3>
+    <p style="color:var(--muted);margin:.5rem 0 1rem;font-size:.85rem;line-height:1.6">
+      将清除所有章节、人物、伏笔、世界观数据并重新生成。可在此修改小说基础设定。
+    </p>
+    <label>标题</label>
+    <input id="reinit-title" placeholder="小说标题" />
+    <label>世界类型</label>
+    <select id="reinit-type">
+      <option>玄幻</option><option>修仙</option><option>都市</option>
+      <option>科幻</option><option>武侠</option><option>穿越</option>
+    </select>
+    <label>总卷数</label>
+    <input id="reinit-volumes" type="number" min="1" max="50" />
+    <label>LLM 模型</label>
+    <select id="reinit-provider" style="width:100%;margin-bottom:.5rem">
+      <option value="">默认（.env配置）</option>
+      <option value="deepseek">DeepSeek（云端，快）</option>
+      <option value="ollama">本地 Qwen3.6（免费）</option>
+      <option value="qwen">千问 Qwen（云端）</option>
+    </select>
+    <label>故事描述</label>
+    <textarea id="reinit-desc" rows="5" placeholder="描述主角、世界观、故事主线..."></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeReinitModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitReinit()">🔄 确认重新初始化</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fixed bottom-left log toggle button -->
+<button id="log-fab" onclick="toggleDevLog()" title="日志面板">📋 日志</button>
+
+<!-- F12 Dev Log Panel -->
+<div id="devlog-panel">
+  <div id="devlog-toolbar">
+    <span>📋 运行日志</span>
+    <button class="devlog-filter active" id="devlog-filter-all" onclick="setLogFilter('all')">全部</button>
+    <button class="devlog-filter" id="devlog-filter-error" onclick="setLogFilter('error')">错误</button>
+    <button class="devlog-filter" id="devlog-filter-warn" onclick="setLogFilter('warn')">警告</button>
+    <button class="devlog-close" onclick="toggleDevLog()">✕ 关闭</button>
+  </div>
+  <div id="devlog-content"><div style="color:#5a6075;padding:4px 0">等待日志...</div></div>
+</div>
+
+<script>
+// ── Mobile sidebar ──────────────────────────
+function toggleSidebar() {
+  const aside = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const open = aside.classList.toggle('open');
+  overlay.classList.toggle('show', open);
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// 从当前路径自动推导 API 前缀。
+// 若页面在 /nv2Xk8pQtR/ 下，则 API = '/nv2Xk8pQtR'；若在根路径则 API = ''。
+const API = (() => {
+  const seg = window.location.pathname.split('/').filter(Boolean);
+  return seg.length > 0 ? '/' + seg[0] : '';
+})();
+let currentNovelId = null;
+let currentTab = 'overview';
+let statusPollInterval = null;
+let pollTimeoutId = null;
+let _writeStartTime = 0;  // 记录"开始写作"的时间，用于启动宽限期
+
+// ── Health check ────────────────────────────
+async function checkHealth() {
+  try {
+    const r = await fetch(`${API}/api/health`);
+    const d = await r.json();
+    const el = document.getElementById('health-indicator');
+    const ok = d.storage && d.cache;
+    el.textContent = ok ? '✅ 服务正常' : '⚠️ 部分服务异常';
+    el.style.color = ok ? 'var(--success)' : 'var(--warn)';
+  } catch(e) {
+    document.getElementById('health-indicator').textContent = '❌ 连接失败';
+  }
+}
+
+// ── Novel list ────────────────────────────
+async function loadNovels() {
+  const r = await fetch(`${API}/api/novels`);
+  const novels = await r.json();
+  const el = document.getElementById('novel-list');
+  if (!novels.length) {
+    el.innerHTML = '<div class="empty">暂无小说</div>';
+    return;
+  }
+  el.innerHTML = novels.map(n => `
+    <div class="novel-item ${n.novel_id === currentNovelId ? 'active' : ''}"
+         onclick="selectNovel('${n.novel_id}')">
+      <div class="name">${n.title}</div>
+      <div class="meta">
+        <span class="status-badge status-${n.status}">${statusLabel(n.status)}</span>
+        ${n.total_volumes}卷
+        ${n.status === 'init' ? '<span style="color:var(--accent);margin-left:4px">⏳</span>' : ''}
+        ${n.status === 'writing' ? '<span style="color:var(--success);margin-left:4px">✍️</span>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function statusLabel(s) {
+  return {init:'初始化中',writing:'写作中',paused:'待续写',done:'已完成',completed:'已完结 🔒'}[s] || s;
+}
+
+function isCompleted(id) {
+  return fetch(`${API}/api/novels/${id}`).then(r => r.json()).then(n => n.status === 'completed');
+}
+
+// ── Novel detail ────────────────────────────
+async function selectNovel(id) {
+  currentNovelId = id;
+  window._activeVolumeTab = null;  // reset volume tab selection on novel change
+  window._switchVolTabData = null;
+  document.querySelectorAll('.novel-item').forEach(el => {
+    el.classList.toggle('active', el.onclick.toString().includes(id));
+  });
+  closeSidebar();  // 手机端选中后自动收起侧边栏
+  stopStatusPolling();  // 清除上一个小说的轮询
+  if (_devLogOpen) _fetchDevLogs();  // 刷新日志面板
+  await loadNovelDetail(id);
+  startStatusPolling(id);  // 启动新小说的轮询
+}
+
+async function loadNovelDetail(id) {
+  const [novel, stats, status] = await Promise.all([
+    fetch(`${API}/api/novels/${id}`).then(r => r.json()),
+    fetch(`${API}/api/novels/${id}/stats`).then(r => r.json()),
+    fetch(`${API}/api/novels/${id}/status`).then(r => r.json()),
+  ]);
+  window.currentNovelStatus = novel.status;
+
+  // 如果小说在初始化中，显示进度条；写作中（或 current_task 非空）显示最新章节进度
+  const _isWriting = status.status === 'writing' || (!!status.current_task && status.status !== 'completed');
+  const initProgress = status.status === 'init' ? `
+    <div id="status-banner" style="background:rgba(108,99,255,.1);border:1px solid rgba(108,99,255,.3);border-radius:8px;padding:1rem;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite"></div>
+        <span style="color:var(--accent);font-size:0.9rem;font-weight:600">初始化中 (后台运行)</span>
+        <span style="font-size:0.75rem;color:var(--muted);margin-left:auto">页面可正常操作，生成完成后自动刷新</span>
+        <button id="stop-btn" class="btn btn-warning stop-btn" onclick="requestStop()" style="padding:4px 12px;font-size:0.8rem">
+          <div class="spinner"></div><span>⏹ 立即停止</span>
+        </button>
+      </div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">正在生成世界观、人物设定、卷纲规划... 通常需要 1-3 分钟</div>
+      <div id="current-task-info" style="margin-bottom:0.5rem;min-height:1.2rem"></div>
+    </div>
+  ` : _isWriting ? `
+    <div id="status-banner" style="background:rgba(72,187,120,.1);border:1px solid rgba(72,187,120,.3);border-radius:8px;padding:1rem;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 1s infinite"></div>
+        <span style="color:var(--success);font-size:0.9rem;font-weight:600">写作中 (后台运行)</span>
+        <span id="progress-counter" style="font-size:0.8rem;color:var(--muted);margin-left:auto">${status.done_chapters}/${status.total_chapters} 章 · ${(status.total_words/10000).toFixed(1)}万字</span>
+        <button id="stop-btn" class="btn btn-warning stop-btn" onclick="requestStop()" style="padding:4px 12px;font-size:0.8rem">
+          <div class="spinner"></div><span>⏹ 立即停止</span>
+        </button>
+      </div>
+      <div id="current-task-info" style="margin-bottom:0.5rem;min-height:1.2rem">${_formatTaskInfo(status.current_task)}</div>
+      ${status.last_chapter ? `
+        <div id="last-chapter-info" style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">
+          最新章节: <span style="color:var(--text)">第${status.last_chapter.chapter_no}章 ${status.last_chapter.title||''}</span>
+          <span style="margin-left:4px">${status.last_chapter.status==='done'?'✅':status.last_chapter.status==='failed'?'❌':'⏳'}</span>
+        </div>
+      ` : '<div id="last-chapter-info" style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">等待章节生成...</div>'}
+    </div>
+  ` : '';
+
+  document.getElementById('main-content').innerHTML = initProgress + `
+    <div class="novel-header-row">
+      <div class="novel-title-block">
+        <h2 style="font-size:1.4rem">${novel.title}</h2>
+        <span class="status-badge status-${novel.status}">${statusLabel(novel.status)}</span>
+      </div>
+      <div style="flex:1"></div>
+      <div class="novel-action-btns">
+        ${novel.status === 'completed' ? ''
+          : `<button class="btn btn-ghost" style="color:var(--accent)" onclick="showReinitConfirm()">🔄 重新初始化</button>
+        <button class="btn btn-ghost" style="color:var(--accent2)" onclick="showDeleteConfirm()">🗑 删除</button>`}
+        <button class="btn btn-ghost" style="color:var(--success)" onclick="exportNovel()">⬇ 下载全文</button>
+        <button class="btn btn-success" ${(status.status === 'init' || status.status === 'writing' || novel.status === 'completed') ? 'disabled' : ''} onclick="showWritePanel()">▶ 开始写作</button>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:1.5rem">
+      <div class="stat-card"><div class="value">${(stats.total_words/10000).toFixed(1)}万</div><div class="label">已生成字数</div></div>
+      <div class="stat-card"><div class="value">${stats.total_chapters}</div><div class="label">已完成章节</div></div>
+      <div class="stat-card"><div class="value">${stats.pending_foreshadows}</div><div class="label">活跃伏笔</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab ${currentTab==='overview'?'active':''}" onclick="switchTab('overview')">概览</button>
+      <button class="tab ${currentTab==='chapters'?'active':''}" onclick="switchTab('chapters')">章节</button>
+      <button class="tab ${currentTab==='characters'?'active':''}" onclick="switchTab('characters')">人物</button>
+      <button class="tab ${currentTab==='foreshadows'?'active':''}" onclick="switchTab('foreshadows')">伏笔</button>
+      <button class="tab ${currentTab==='metrics'?'active':''}" onclick="switchTab('metrics')">读者指标</button>
+      <button class="tab ${currentTab==='control'?'active':''}" onclick="switchTab('control')">作者控制台</button>
+    </div>
+    <div id="tab-content"></div>
+  `;
+
+  switchTab(currentTab);
+}
+
+// ── Tabs ─────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.textContent.trim() === {
+      overview:'概览',chapters:'章节',characters:'人物',
+      foreshadows:'伏笔',metrics:'读者指标',control:'作者控制台'
+    }[tab]);
+  });
+  loadTab(tab);
+}
+
+async function loadTab(tab) {
+  const el = document.getElementById('tab-content');
+  if (!currentNovelId) return;
+
+  if (tab === 'overview') {
+    const novel = await fetch(`${API}/api/novels/${currentNovelId}`).then(r => r.json());
+    el.innerHTML = `
+      <div class="grid-2">
+        <div class="card">
+          <h2>世界背景</h2>
+          <p style="color:var(--muted);font-size:.9rem;line-height:1.6">${novel.background || '(未生成)'}</p>
+        </div>
+        <div class="card">
+          <h2>作者意图</h2>
+          <p style="color:var(--muted);font-size:.9rem;line-height:1.6">${novel.author_intent || '(未设置)'}</p>
+          <div style="margin-top:.75rem;font-size:.8rem;color:var(--accent)">当前聚焦：${novel.current_focus || '(未设置)'}</div>
+        </div>
+      </div>
+    `;
+  } else if (tab === 'chapters') {
+    const [chapters, volumes] = await Promise.all([
+      fetch(`${API}/api/novels/${currentNovelId}/chapters?limit=500`).then(r => r.json()),
+      fetch(`${API}/api/novels/${currentNovelId}/volumes`).then(r => r.json()).catch(() => []),
+    ]);
+
+    // Build volume info map
+    const volTitleMap = {};
+    const volInfoMap = {};
+    volumes.forEach(v => {
+      volTitleMap[v.volume_no] = v.title || `第${v.volume_no}卷`;
+      volInfoMap[v.volume_no] = { goal: v.volume_goal || '', arc: v.arc_notes || '' };
+    });
+
+    // Group chapters by volume_no (ascending)
+    const byVolume = {};
+    [...chapters].sort((a, b) => a.chapter_no - b.chapter_no).forEach(c => {
+      if (!byVolume[c.volume_no]) byVolume[c.volume_no] = [];
+      byVolume[c.volume_no].push(c);
+    });
+
+    const volNos = Object.keys(byVolume).map(Number).sort((a, b) => a - b);
+
+    // Also include volumes that have no chapters yet (from volumes API)
+    volumes.forEach(v => { if (!byVolume[v.volume_no]) volNos.push(v.volume_no); });
+    volNos.sort((a, b) => a - b);
+
+    // Default to first volume
+    const firstVol = volNos[0] || 1;
+    if (!window._activeVolumeTab || !volNos.includes(window._activeVolumeTab)) {
+      window._activeVolumeTab = firstVol;
+    }
+
+    function renderVolumeContent(vno) {
+      const chs = byVolume[vno] || [];
+      const volTitle = volTitleMap[vno] || `第${vno}卷`;
+      const done = chs.filter(c => c.status === 'done').length;
+      const totalWords = chs.reduce((s, c) => s + (c.word_count || 0), 0);
+      const info = volInfoMap[vno] || {};
+      const goalHtml = info.goal ? `
+        <div style="margin-bottom:.5rem">
+          <span style="color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">卷目标　</span>
+          <span style="font-size:.82rem;color:var(--text)">${info.goal}</span>
+        </div>` : '';
+      const arcHtml = info.arc ? `
+        <div>
+          <span style="color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">核心冲突　</span>
+          <span style="font-size:.82rem;color:var(--text)">${info.arc}</span>
+        </div>` : '';
+      const focusBlock = (goalHtml || arcHtml) ? `
+        <div style="background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.2);border-radius:6px;padding:.6rem .9rem;margin-bottom:.85rem;line-height:1.7">
+          ${goalHtml}${arcHtml}
+        </div>` : '';
+      return `
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;flex-wrap:wrap">
+          <span style="color:var(--accent);font-weight:600;font-size:1rem">第${vno}卷</span>
+          <span style="color:var(--text);font-size:.95rem;font-weight:500">${volTitle}</span>
+          <button class="btn btn-ghost" style="padding:2px 10px;font-size:.72rem"
+            onclick="copyVolTitle(this, ${vno}, '${volTitle.replace(/'/g,"\\'")}')">复制卷名</button>
+          <span style="color:var(--muted);font-size:.75rem;margin-left:auto">${done}/${chs.length}章 · ${(totalWords/10000).toFixed(1)}万字</span>
+        </div>
+        ${focusBlock}
+        <div class="chapter-list" style="max-height:none">
+          ${chs.length ? chs.map(c => `
+            <div class="chapter-item" style="cursor:pointer;padding-left:1rem"
+                 onclick="openChapterModal(${c.chapter_no})"
+                 onmouseenter="this.style.background='rgba(108,99,255,.08)'"
+                 onmouseleave="this.style.background=''">
+              <span class="ch-no">#${c.chapter_no}</span>
+              <span class="ch-title" style="color:var(--accent)">${c.title || '(无标题)'}</span>
+              <span class="ch-words">${(c.word_count||0)}字</span>
+              <span class="ch-status">
+                ${c.status==='done'?'✅':c.status==='failed'?'❌':'⏳'}
+              </span>
+              ${window.currentNovelStatus !== 'completed' ? `<button class="btn btn-ghost" style="padding:2px 8px;font-size:0.7rem;margin-left:4px"
+                onclick="event.stopPropagation();regenChapter(${c.chapter_no})">↺ 重生成</button>` : ''}
+            </div>
+          `).join('') : '<div class="empty">本卷暂无章节</div>'}
+        </div>
+      `;
+    }
+
+    el.innerHTML = `
+      <div class="card" style="padding-bottom:.5rem">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:.75rem" id="vol-tab-bar">
+          ${volNos.map(vno => {
+            const chs = byVolume[vno] || [];
+            const done = chs.filter(c => c.status === 'done').length;
+            const isActive = vno === window._activeVolumeTab;
+            return `<button id="vol-tab-${vno}"
+              class="tab ${isActive ? 'active' : ''}"
+              style="font-size:.78rem;padding:4px 12px"
+              onclick="switchVolTab(${vno})">
+              第${vno}卷
+              <span style="font-size:.65rem;margin-left:3px;color:var(--muted)">${done}/${chs.length}</span>
+            </button>`;
+          }).join('')}
+        </div>
+        <div id="vol-chapter-body">
+          ${renderVolumeContent(window._activeVolumeTab)}
+        </div>
+      </div>
+    `;
+
+    window._switchVolTabData = { byVolume, volTitleMap, volInfoMap };
+  } else if (tab === 'characters') {
+    el.innerHTML = `<div id="char-board-content"><div style="color:var(--muted);padding:1rem">加载中...</div></div>`;
+    renderCharacterBoard(currentNovelId);
+  } else if (tab === 'foreshadows') {
+    const fshadows = await fetch(`${API}/api/novels/${currentNovelId}/foreshadows`).then(r => r.json());
+    const grouped = {BURIED:[], ACTIVE:[], DUE:[], RESOLVED:[]};
+    fshadows.forEach(f => (grouped[f.state] = grouped[f.state] || []).push(f));
+    const counts = Object.entries({BURIED:'埋入',ACTIVE:'活跃',DUE:'到期',RESOLVED:'已解决'})
+      .map(([s,l]) => `<span><span style="color:var(--muted)">${l}:</span> ${(grouped[s]||[]).length}</span>`).join('');
+    el.innerHTML = `
+      <div class="card">
+        <h2>伏笔追踪</h2>
+        <div style="display:flex;gap:1rem;font-size:.8rem;margin-bottom:.75rem">${counts}</div>
+        <div class="fshadow-filter-bar">
+          <button class="fshadow-filter-btn btn-all active" onclick="filterForeshadows('all',this)">全部 (${fshadows.length})</button>
+          <button class="fshadow-filter-btn btn-DUE" onclick="filterForeshadows('DUE',this)">⚠️ 到期 (${(grouped.DUE||[]).length})</button>
+          <button class="fshadow-filter-btn btn-ACTIVE" onclick="filterForeshadows('ACTIVE',this)">活跃 (${(grouped.ACTIVE||[]).length})</button>
+          <button class="fshadow-filter-btn btn-BURIED" onclick="filterForeshadows('BURIED',this)">埋入 (${(grouped.BURIED||[]).length})</button>
+          <button class="fshadow-filter-btn btn-RESOLVED" onclick="filterForeshadows('RESOLVED',this)">✓ 已解决 (${(grouped.RESOLVED||[]).length})</button>
+        </div>
+        <div class="fshadow-list" id="fshadow-list">
+          ${fshadows.map(f => `
+            <div class="fshadow-item ${f.state}" data-state="${f.state}">
+              <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:2px">
+                <span style="font-size:.7rem;color:var(--muted)">${f.fshadow_id}</span>
+                <span class="status-badge" style="font-size:.65rem">${f.state}</span>
+                <span style="font-size:.7rem;color:var(--warn)">${f.importance}</span>
+              </div>
+              ${f.description}
+              <div style="font-size:.7rem;color:var(--muted);margin-top:2px">
+                植入: Ch${f.buried_chapter}
+                ${f.due_range_end ? ` | 到期: Ch${f.due_range_end}` : ''}
+                ${f.resolve_chapter ? ` | 解决: Ch${f.resolve_chapter}` : ''}
+              </div>
+            </div>
+          `).join('') || '<div class="empty">暂无伏笔</div>'}
+        </div>
+      </div>
+    `;
+  } else if (tab === 'metrics') {
+    const data = await fetch(`${API}/api/novels/${currentNovelId}/metrics?last_n=20`).then(r => r.json());
+    const t = data.trend || {};
+    el.innerHTML = `
+      <div class="card">
+        <h2>读者体验趋势（最近20章）</h2>
+        <div style="margin:1rem 0">
+          <div class="metric-bar">
+            <span class="metric-label">吸引力</span>
+            <div class="metric-track"><div class="metric-fill m-engagement" style="width:${(t.avg_engagement||.5)*100}%"></div></div>
+            <span style="font-size:.8rem;color:var(--muted)">${((t.avg_engagement||.5)*100).toFixed(0)}%</span>
+          </div>
+          <div class="metric-bar">
+            <span class="metric-label">紧张度</span>
+            <div class="metric-track"><div class="metric-fill m-tension" style="width:${(t.avg_tension||.5)*100}%"></div></div>
+            <span style="font-size:.8rem;color:var(--muted)">${((t.avg_tension||.5)*100).toFixed(0)}%</span>
+          </div>
+          <div class="metric-bar">
+            <span class="metric-label">流失风险</span>
+            <div class="metric-track"><div class="metric-fill m-drop" style="width:${(t.avg_drop_risk||.5)*100}%"></div></div>
+            <span style="font-size:.8rem;color:var(--muted)">${((t.avg_drop_risk||.5)*100).toFixed(0)}%</span>
+          </div>
+        </div>
+        <p style="color:var(--muted);font-size:.85rem">趋势：<strong style="color:var(--text)">${t.trend||'stable'}</strong> (样本: ${t.sample_size||0}章)</p>
+      </div>
+    `;
+  } else if (tab === 'control') {
+    const novel = await fetch(`${API}/api/novels/${currentNovelId}`).then(r => r.json());
+    el.innerHTML = `
+      <div class="card">
+        <h2>🎮 作者控制台</h2>
+        <label>作者意图（全书长远方向）</label>
+        <textarea id="ctrl-intent" rows="4">${novel.author_intent||''}</textarea>
+        <label>当前聚焦（近1-2卷方向）</label>
+        <textarea id="ctrl-focus" rows="3">${novel.current_focus||''}</textarea>
+        <div style="margin-top:1rem;display:flex;gap:.75rem">
+          <button class="btn btn-primary" onclick="saveControl()">💾 保存控制参数</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>▶ 写作控制</h2>
+        <div class="form-row">
+          <div style="flex:2">
+            <label>模式</label>
+            <select id="write-mode" style="width:100%">
+              <option value="auto">自动继续（从下一卷开始）</option>
+              <option value="volume">写单卷（从下一卷开始）</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label>LLM 模型</label>
+            <select id="write-provider" style="width:100%">
+              <option value="">默认（.env配置）</option>
+              <option value="ollama">本地 Qwen3.6（免费）</option>
+              <option value="deepseek">DeepSeek（云端，快）</option>
+              <option value="qwen">千问 Qwen（云端）</option>
+            </select>
+          </div>
+        </div>
+        <p style="color:var(--muted);font-size:.82rem;margin:.5rem 0 0;line-height:1.5">
+          ⚡ 无需输入起始卷 — 系统自动检测下一卷继续写作
+        </p>
+        <div style="margin-top:1rem;display:flex;gap:.75rem">
+          <button class="btn btn-success" onclick="startWriting()">▶ 继续写作</button>
+        </div>
+      </div>
+      ${novel.status === 'completed' ? `
+      <div class="card" style="border-color:rgba(255,215,0,.3);text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">🔒</div>
+        <h2 style="color:#ffd700">小说已完结</h2>
+        <p style="color:var(--muted);font-size:.85rem;line-height:1.6;margin-bottom:1rem">
+          该小说已标记为「已完结」，所有生成、修改、删除操作已被锁定。
+        </p>
+        <button class="btn btn-ghost" onclick="showUncompleteConfirm()">🔓 解除完结状态</button>
+      </div>`
+      : `
+      <div class="card" style="border-color:rgba(255,101,132,.3)">
+        <h2>🔄 整卷重写</h2>
+        <p style="color:var(--muted);font-size:.85rem;line-height:1.6;margin-bottom:1rem">
+          清除指定卷的全部章节、摘要、向量及相关伏笔数据，重新规划并完整生成整卷内容。
+          适用于对某一卷质量不满意、或初次生成缺少向量数据的情况。
+        </p>
+        <div>
+          <label>要重写的卷</label>
+          <input id="rewrite-vol" type="number" value="1" min="1" style="max-width:120px" />
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:.75rem">
+          <button class="btn btn-danger" onclick="showRewriteVolumeConfirm()">🔄 整卷重写</button>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(255,215,0,.3)">
+        <h2>🏁 完结操作</h2>
+        <p style="color:var(--muted);font-size:.85rem;line-height:1.6;margin-bottom:1rem">
+          将小说标记为「已完结 🔒」后，所有删除、重置、修改、继续生成等操作将被禁止，防止误操作。
+        </p>
+        <div style="margin-top:1rem;display:flex;gap:.75rem">
+          <button class="btn btn-primary" style="background:#ffd700;color:#000" onclick="showCompleteConfirm()">🏁 标记为已完结</button>
+        </div>
+      </div>`}
+    `;
+  }
+}
+
+async function saveControl() {
+  const intent = document.getElementById('ctrl-intent')?.value;
+  const focus = document.getElementById('ctrl-focus')?.value;
+  await fetch(`${API}/api/novels/${currentNovelId}/control`, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({author_intent: intent, current_focus: focus}),
+  });
+  showToast('✅ 控制参数已保存');
+}
+
+async function startWriting() {
+  const mode = document.getElementById('write-mode')?.value || 'auto';
+  const provider = document.getElementById('write-provider')?.value || null;
+
+  // 前端防重入：先查一次当前状态
+  const cur = await fetch(`${API}/api/novels/${currentNovelId}/status`).then(r => r.json());
+  if (cur.status === 'writing' || cur.status === 'init') {
+    showToast('⚠️ 当前有任务正在运行，请等待完成后再提交');
+    return;
+  }
+
+  const body = {mode};
+  if (provider) body.provider = provider;
+
+  const resp = await fetch(`${API}/api/novels/${currentNovelId}/write`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body),
+  });
+  if (resp.status === 409) {
+    showToast('⚠️ 已有写作任务运行中，请勿重复提交');
+    return;
+  }
+  showToast(`🚀 写作任务已启动 (${mode === 'auto' ? '自动多卷' : '单卷'}模式)`);
+  _writeStartTime = Date.now();
+  startStatusPolling(currentNovelId);
+}
+
+function showWritePanel() {
+  switchTab('control');
+}
+
+// ── Chapter detail modal ─────────────────────
+async function openChapterModal(chapterNo) {
+  const overlay = document.getElementById('chapter-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('ch-modal-no').textContent = `第 ${chapterNo} 章`;
+  document.getElementById('ch-modal-title').textContent = '加载中...';
+  document.getElementById('ch-modal-content').textContent = '加载中...';
+
+  try {
+    const ch = await fetch(`${API}/api/novels/${currentNovelId}/chapters/${chapterNo}`).then(r => r.json());
+    document.getElementById('ch-modal-title').textContent = ch.title || '(无标题)';
+    document.getElementById('ch-modal-words').textContent = `${ch.word_count || 0} 字`;
+    document.getElementById('ch-modal-status').textContent =
+      ch.status === 'done' ? '✅' : ch.status === 'failed' ? '❌' : '⏳';
+    document.getElementById('ch-modal-content').textContent = ch.content || '（暂无内容）';
+    const regenBtn = document.getElementById('ch-modal-regen');
+    if (window.currentNovelStatus === 'completed') {
+      regenBtn.style.display = 'none';
+    } else {
+      regenBtn.style.display = '';
+      regenBtn.onclick = () => {
+        closeChapterModal();
+        regenChapter(chapterNo);
+      };
+    }
+  } catch(e) {
+    document.getElementById('ch-modal-content').textContent = '加载失败: ' + e;
+  }
+}
+
+function closeChapterModal() {
+  document.getElementById('chapter-overlay').style.display = 'none';
+  // Restore to view mode if editor was open
+  const editor = document.getElementById('ch-modal-editor');
+  if (editor) {
+    const viewer = document.getElementById('ch-modal-content');
+    viewer.style.display = '';
+    editor.remove();
+    document.getElementById('ch-modal-edit').style.display = '';
+  }
+}
+
+// ── Chapter editing ──────────────────────────
+function editChapterContent() {
+  const viewer = document.getElementById('ch-modal-content');
+  const currentText = viewer.textContent;
+  // Create textarea editor
+  const editor = document.createElement('textarea');
+  editor.id = 'ch-modal-editor';
+  editor.style.cssText = 'width:100%;min-height:300px;font-size:.9rem;line-height:1.8;padding:.8rem;border:1px solid var(--accent);border-radius:6px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit';
+  editor.value = currentText;
+  viewer.style.display = 'none';
+  viewer.parentNode.insertBefore(editor, viewer.nextSibling);
+  // Swap buttons
+  document.getElementById('ch-modal-edit').style.display = 'none';
+  const actions = viewer.parentNode.querySelector('.modal-footer-actions') || (() => {
+    const div = document.createElement('div');
+    div.className = 'modal-footer-actions';
+    div.style.cssText = 'display:flex;gap:.4rem;margin-top:.5rem';
+    div.innerHTML = '<button class="btn btn-primary" onclick="saveChapterContent()" style="font-size:.75rem;padding:4px 12px">💾 保存</button><button class="btn btn-ghost" onclick="cancelChapterEdit()" style="font-size:.75rem;padding:4px 12px">取消</button>';
+    viewer.parentNode.appendChild(div);
+    return div;
+  })();
+  actions.style.display = 'flex';
+  editor.focus();
+}
+
+async function saveChapterContent() {
+  const editor = document.getElementById('ch-modal-editor');
+  if (!editor) return;
+  const content = editor.value;
+  if (content.length < 10) { showToast('⚠️ 内容太短'); return; }
+  // Get chapter number from modal header
+  const header = document.getElementById('ch-modal-no').textContent;
+  const chMatch = header.match(/(\d+)/);
+  if (!chMatch) return;
+  const chNo = parseInt(chMatch[1]);
+  try {
+    const resp = await fetch(`${API}/api/novels/${currentNovelId}/chapters/${chNo}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content}),
+    });
+    if (!resp.ok) { showToast('❌ 保存失败: ' + (await resp.text())); return; }
+    showToast('✅ 章节已保存');
+    cancelChapterEdit();
+    // Refresh content display
+    document.getElementById('ch-modal-content').textContent = content;
+    document.getElementById('ch-modal-content').style.display = '';
+    document.getElementById('ch-modal-words').textContent = `${content.length} 字`;
+    document.getElementById('ch-modal-status').textContent = '✏️';
+  } catch(e) {
+    showToast('❌ 保存失败: ' + e.message);
+  }
+}
+
+function cancelChapterEdit() {
+  const editor = document.getElementById('ch-modal-editor');
+  if (editor) editor.remove();
+  const viewer = document.getElementById('ch-modal-content');
+  viewer.style.display = '';
+  document.getElementById('ch-modal-edit').style.display = '';
+  const actions = viewer.parentNode.querySelector('.modal-footer-actions');
+  if (actions) actions.style.display = 'none';
+}
+
+// ── Chapter rewrite panel ────────────────────
+function showRewritePanel() {
+  const viewer = document.getElementById('ch-modal-content');
+  const currentText = viewer.textContent;
+  // Create rewrite panel
+  let panel = document.getElementById('ch-rewrite-panel');
+  if (panel) { panel.style.display = 'block'; return; }
+  panel = document.createElement('div');
+  panel.id = 'ch-rewrite-panel';
+  panel.style.cssText = 'margin-top:.5rem;padding:.8rem;border:1px solid var(--accent);border-radius:6px;background:var(--card)';
+  panel.innerHTML = `
+    <div style="font-size:.85rem;font-weight:600;margin-bottom:.5rem">🔄 章节改写</div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem">
+      <button class="btn btn-ghost" onclick="doRewrite('expand')" style="font-size:.75rem;padding:3px 8px">📈 扩写</button>
+      <button class="btn btn-ghost" onclick="doRewrite('compress')" style="font-size:.75rem;padding:3px 8px">📉 压缩</button>
+      <button class="btn btn-ghost" onclick="doRewrite('change_tone','热血')" style="font-size:.75rem;padding:3px 8px">🔥 变热血</button>
+      <button class="btn btn-ghost" onclick="doRewrite('change_tone','压抑')" style="font-size:.75rem;padding:3px 8px">☁️ 变压抑</button>
+      <button class="btn btn-ghost" onclick="doRewrite('change_tone','轻松')" style="font-size:.75rem;padding:3px 8px">😊 变轻松</button>
+      <button class="btn btn-ghost" onclick="doRewrite('change_tone','紧张')" style="font-size:.75rem;padding:3px 8px">⚡ 变紧张</button>
+    </div>
+    <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+      <span style="font-size:.75rem;color:var(--muted)">目标字数:</span>
+      <input id="ch-rewrite-target" type="number" placeholder="留空自动" style="width:80px;padding:2px 6px;font-size:.75rem;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)">
+      <span id="ch-rewrite-status" style="font-size:.75rem;color:var(--muted);margin-left:auto"></span>
+    </div>
+  `;
+  viewer.parentNode.appendChild(panel);
+}
+
+function hideRewritePanel() {
+  const panel = document.getElementById('ch-rewrite-panel');
+  if (panel) panel.style.display = 'none';
+}
+
+async function doRewrite(action, targetTone) {
+  const statusEl = document.getElementById('ch-rewrite-status');
+  statusEl.textContent = '⏳ 正在改写...';
+  const header = document.getElementById('ch-modal-no').textContent;
+  const chMatch = header.match(/(\d+)/);
+  if (!chMatch) return;
+  const chNo = parseInt(chMatch[1]);
+  const targetInput = document.getElementById('ch-rewrite-target');
+  const targetChars = targetInput ? parseInt(targetInput.value) || 0 : 0;
+  try {
+    const resp = await fetch(`${API}/api/novels/${currentNovelId}/chapters/${chNo}/rewrite`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action, target_chars: targetChars, target_tone: targetTone || ''}),
+    });
+    if (!resp.ok) { statusEl.textContent = '❌ 改写失败'; return; }
+    const result = await resp.json();
+    document.getElementById('ch-modal-content').textContent = result.content;
+    document.getElementById('ch-modal-words').textContent = `${result.new_words} 字`;
+    document.getElementById('ch-modal-status').textContent = '✏️';
+    statusEl.textContent = `✅ ${result.original_words} → ${result.new_words} 字`;
+    hideRewritePanel();
+  } catch(e) {
+    statusEl.textContent = '❌ 改写失败: ' + e.message;
+  }
+}
+
+// ── Character timeline visualization ─────────
+async function renderCharacterBoard(novelId) {
+  const container = document.getElementById('char-board-content');
+  if (!container) return;
+  container.innerHTML = '<div style="color:var(--muted);padding:1rem">加载中...</div>';
+  try {
+    const [chars, chs] = await Promise.all([
+      fetch(`${API}/api/novels/${novelId}/characters`).then(r => r.json()),
+      fetch(`${API}/api/novels/${novelId}/chapters?limit=10`).then(r => r.json()),
+    ]);
+    if (!chars || chars.length === 0) {
+      container.innerHTML = '<div style="color:var(--muted);padding:1rem">暂无角色数据</div>';
+      return;
+    }
+    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.6rem">';
+    for (const c of chars.slice(0, 12)) {
+      const name = c.name || c.char_id || '?';
+      const status = c.status || 'alive';
+      const emo_expr = c.emotion_expression || {};
+      const catchphrases = (emo_expr.catchphrases || []).filter(Boolean);
+      const speechStyle = emo_expr.speech_style || '';
+      const personality = (c.personality || []).filter(Boolean).join('、');
+      const relCount = Object.keys(c.relationships || {}).length;
+      const bgColor = status === 'dead' ? 'var(--danger-bg,rgba(255,80,80,.1))' : 'var(--card)';
+      html += `<div style="background:${bgColor};border:1px solid var(--border);border-radius:8px;padding:.65rem">
+        <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem">
+          <span style="font-weight:600;font-size:.85rem">${name}</span>
+          <span style="font-size:.65rem;padding:1px 5px;border-radius:3px;background:${status==='dead'?'rgba(255,80,80,.2)':'rgba(80,200,120,.15)'};color:${status==='dead'?'var(--danger)':'var(--success)'}">${status==='dead'?'已亡':'存活'}</span>
+        </div>
+        <div style="font-size:.73rem;color:var(--muted);line-height:1.75">
+          ${c.power_level ? `<span>境界: ${c.power_level}</span><br>` : ''}
+          ${c.location ? `<span>位置: ${c.location}</span><br>` : ''}
+          ${c.emotion_state ? `<span>情绪: ${c.emotion_state}</span><br>` : ''}
+          ${personality ? `<span>性格: ${personality}</span><br>` : ''}
+          ${c.appearance ? `<span style="color:var(--text)">外貌: ${c.appearance}</span><br>` : ''}
+          ${speechStyle ? `<span>语气: ${speechStyle}</span><br>` : ''}
+          ${catchphrases.length ? `<span style="color:var(--accent,#7c9ef5)">口禅: ${catchphrases.join(' / ')}</span><br>` : ''}
+          <span style="color:var(--muted-2,var(--muted))">关系: ${relCount}人</span>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = `<div style="color:var(--danger)">加载失败: ${e.message}</div>`;
+  }
+}
+
+async function exportNovel() {
+  if (!currentNovelId) return;
+  try {
+    showToast('正在生成 TXT 文件...');
+    const resp = await fetch(`${API}/api/novels/${currentNovelId}/export`);
+    if (!resp.ok) { showToast('导出失败'); return; }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const disp = resp.headers.get('content-disposition') || '';
+    const match = disp.match(/filename\*=UTF-8''(.+)/i);
+    a.download = match ? decodeURIComponent(match[1]) : 'novel.txt';
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+    showToast('✅ 下载完成');
+  } catch(e) {
+    showToast('导出失败：' + e.message);
+  }
+}
+
+async function copyChapterTitle(btn) {
+  const title = document.getElementById('ch-modal-title').textContent;
+  await _copyText(title, btn, '标题已复制');
+}
+
+async function copyChapterContent(btn) {
+  const content = document.getElementById('ch-modal-content').textContent;
+  await _copyText(content, btn, '正文已复制');
+}
+
+async function _copyText(text, btn, successMsg) {
+  try {
+    await navigator.clipboard.writeText(text);
+    const orig = btn.textContent;
+    btn.textContent = '✅ ' + successMsg;
+    btn.style.color = 'var(--success)';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+  } catch(e) {
+    // 降级：选中文本
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    showToast('✅ ' + successMsg);
+  }
+}
+
+// 点击遮罩层关闭
+document.getElementById('chapter-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeChapterModal();
+});
+
+// ── Task info formatter ───────────────────
+function _formatTaskInfo(task) {
+  if (!task) return '<span style="color:var(--muted);font-size:0.8rem">等待任务信息...</span>';
+  const typeLabel = {
+    write_volume: '写作',
+    auto: '自动写作',
+    rewrite_volume: '整卷重写',
+    regen_chapter: '重生成',
+    init: '初始化',
+  }[task.type] || task.type;
+  const volPart = task.volume_no ? `第${task.volume_no}卷` : '';
+  const chPart  = task.chapter_no ? `第${task.chapter_no}章` : '';
+  if (chPart) {
+    const loc = [volPart, chPart].filter(Boolean).join(' · ');
+    return `<span style="color:var(--success);font-size:0.92rem;font-weight:600">✍ 正在写作：${loc}</span><span style="color:var(--muted);font-size:0.75rem;margin-left:8px">AI 生成中...</span>`;
+  }
+  return `<span style="color:var(--accent);font-size:0.85rem">▶ ${typeLabel}</span>${volPart ? ` <span style="color:var(--text);font-size:0.85rem">${volPart}</span>` : ''}<span style="color:var(--muted);font-size:0.75rem;margin-left:6px">正在生成中...</span>`;
+}
+
+// ── Stop task ────────────────────────────
+async function requestStop() {
+  if (!currentNovelId) return;
+  const btn = document.getElementById('stop-btn');
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+
+  try {
+    const resp = await fetch(`${API}/api/novels/${currentNovelId}/stop`, { method: 'POST' });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.status === 'fixed') {
+        // Ghost state: server already cleaned it up, just reload
+        showToast('已修复残留状态，任务已停止');
+        stopStatusPolling();
+        await loadNovelDetail(currentNovelId);
+        await loadNovels();
+        return;
+      }
+      showToast('⏹ 立即停止信号已发送，正在中断当前任务...');
+      // Visual feedback: show stopping state
+      const banner = document.getElementById('status-banner');
+      if (banner) {
+        const dot = banner.querySelector('div[style*="border-radius:50%"]');
+        if (dot) { dot.style.background = 'var(--warn)'; dot.style.animation = 'none'; }
+        const label = banner.querySelector('span[style*="font-weight:600"]');
+        if (label) { label.textContent = '正在立即停止...'; label.style.color = 'var(--warn)'; }
+      }
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      showToast(`❌ 停止失败: ${err.detail || resp.status}`);
+      if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+    }
+  } catch(e) {
+    showToast('❌ 请求失败: ' + e.message);
+    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+  }
+}
+
+// ── Reinit with stop guard ──────────────
+function showDeleteConfirm() {
+  showConfirm(
+    '⚠️ 删除小说',
+    '此操作将永久删除该小说及所有章节、人物、伏笔等数据，无法恢复。确认继续？',
+    'btn-danger',
+    '永久删除',
+    async () => {
+      await fetch(`${API}/api/novels/${currentNovelId}`, { method: 'DELETE' });
+      currentNovelId = null;
+      stopStatusPolling();
+      document.getElementById('main-content').innerHTML = `
+        <div id="welcome" class="card" style="text-align:center;padding:3rem">
+          <div style="font-size:3rem">🧠</div>
+          <h2 style="margin:1rem 0">Novel Agent V2</h2>
+          <p style="color:var(--muted);margin-bottom:1.5rem">小说已删除，创建新的小说开始写作</p>
+          <button class="btn btn-primary" onclick="showNewNovelModal()">创建第一部小说</button>
+        </div>`;
+      await loadNovels();
+      showToast('🗑 小说已删除');
+    }
+  );
+}
+
+function showRewriteVolumeConfirm() {
+  const vol = parseInt(document.getElementById('rewrite-vol')?.value || '1');
+  showConfirm(
+    `🔄 整卷重写 第${vol}卷`,
+    `此操作将永久删除第${vol}卷的全部章节、摘要、向量和相关伏笔数据，然后重新规划并生成整卷。此操作无法撤销，确认继续？`,
+    'btn-danger',
+    '确认重写',
+    async () => {
+      const cur = await fetch(`${API}/api/novels/${currentNovelId}/status`).then(r => r.json());
+      if (cur.status === 'writing' || cur.status === 'init') {
+        showToast('⚠️ 当前有任务正在运行，请等待完成后再提交');
+        return;
+      }
+      const resp = await fetch(
+        `${API}/api/novels/${currentNovelId}/volumes/${vol}/rewrite`,
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({confirm: true}),
+        }
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        showToast(`❌ 重写失败: ${err.detail || resp.status}`);
+        return;
+      }
+      showToast(`🔄 第${vol}卷整卷重写已启动，后台运行中...`);
+      startStatusPolling(currentNovelId);
+    }
+  );
+}
+
+function showReinitConfirm() {
+  fetch(`${API}/api/novels/${currentNovelId}`).then(r => r.json()).then(novel => {
+    document.getElementById('reinit-title').value = novel.title || '';
+    const sel = document.getElementById('reinit-type');
+    for (let opt of sel.options) { if (opt.value === novel.world_type) { opt.selected = true; break; } }
+    document.getElementById('reinit-volumes').value = novel.total_volumes || 10;
+    document.getElementById('reinit-desc').value = novel.description || '';
+    document.getElementById('reinit-overlay').style.display = 'flex';
+  });
+}
+
+function closeReinitModal() {
+  document.getElementById('reinit-overlay').style.display = 'none';
+}
+
+async function submitReinit() {
+  const cur = await fetch(`${API}/api/novels/${currentNovelId}/status`).then(r => r.json());
+  if (cur.status === 'writing' || cur.status === 'init') {
+    showToast('⚠️ 有任务正在运行，请先点击「停止任务」再重新初始化');
+    return;
+  }
+  const body = {
+    title: document.getElementById('reinit-title').value.trim() || null,
+    description: document.getElementById('reinit-desc').value.trim() || null,
+    world_type: document.getElementById('reinit-type').value || null,
+    total_volumes: parseInt(document.getElementById('reinit-volumes').value) || null,
+    provider: document.getElementById('reinit-provider').value || null,
+  };
+  closeReinitModal();
+  const r = await fetch(`${API}/api/novels/${currentNovelId}/reinit`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    showToast(`❌ 失败: ${err.detail || r.status}`);
+    return;
+  }
+  showToast('🔄 已重置，正在重新初始化...');
+  await loadNovelDetail(currentNovelId);
+  startStatusPolling(currentNovelId);
+}
+
+async function showCompleteConfirm() {
+  showConfirm(
+    '🏁 标记为已完结',
+    '将小说标记为「已完结 🔒」后，所有删除、重置、修改、继续生成等操作将被锁定，防止误操作。\n\n确认继续？',
+    'btn-primary',
+    '确认完结',
+    async () => {
+      const resp = await fetch(`${API}/api/novels/${currentNovelId}/complete`, { method: 'POST' });
+      if (!resp.ok) { const err = await resp.json().catch(()=>({})); showToast(`❌ 失败: ${err.detail || resp.status}`); return; }
+      showToast('🔒 小说已标记为已完结');
+      await loadNovelDetail(currentNovelId);
+      await loadNovels();
+    }
+  );
+}
+
+async function showUncompleteConfirm() {
+  showConfirm(
+    '🔓 解除完结状态',
+    '解除后，该小说将恢复为可操作状态（删除、重置、修改、继续生成等）。确认继续？',
+    'btn-danger',
+    '确认解除',
+    async () => {
+      const resp = await fetch(`${API}/api/novels/${currentNovelId}/uncomplete`, { method: 'POST' });
+      if (!resp.ok) { const err = await resp.json().catch(()=>({})); showToast(`❌ 失败: ${err.detail || resp.status}`); return; }
+      showToast('🔓 已解除完结状态');
+      await loadNovelDetail(currentNovelId);
+      await loadNovels();
+    }
+  );
+}
+
+async function regenChapter(chapterNo) {
+  showConfirm(
+    `↺ 重新生成第 ${chapterNo} 章`,
+    `将清除第 ${chapterNo} 章的现有内容，在后台重新生成。确认继续？`,
+    'btn-primary',
+    '开始重新生成',
+    async () => {
+      await fetch(`${API}/api/novels/${currentNovelId}/chapters/${chapterNo}/regenerate`, { method: 'POST' });
+      showToast(`↺ 第 ${chapterNo} 章重新生成已提交`);
+      startStatusPolling(currentNovelId);
+    }
+  );
+}
+
+function showConfirm(title, msg, btnClass, btnLabel, onConfirm) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  const btn = document.getElementById('confirm-ok');
+  btn.className = `btn ${btnClass}`;
+  btn.textContent = btnLabel;
+  btn.onclick = async () => { closeConfirm(); await onConfirm(); };
+  const overlay = document.getElementById('confirm-overlay');
+  overlay.style.display = 'flex';
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-overlay').style.display = 'none';
+}
+
+// ── New novel modal ───────────────────────
+function showNewNovelModal() {
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+async function createNovel() {
+  const title = document.getElementById('novel-title').value.trim();
+  const desc = document.getElementById('novel-desc').value.trim();
+  const type = document.getElementById('novel-type').value;
+  const vols = parseInt(document.getElementById('novel-volumes').value);
+  if (!title || !desc) { showToast('⚠️ 请填写标题和描述'); return; }
+
+  // 立即关闭弹窗，禁用按钮防止重复提交
+  closeModal();
+  showToast('📚 小说已创建，后台正在生成世界观...');
+
+  const r = await fetch(`${API}/api/novels`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      title, description: desc, world_type: type, total_volumes: vols,
+      provider: document.getElementById('novel-provider').value || null,
+    }),
+  });
+  const d = await r.json();
+
+  await loadNovels();
+  await selectNovel(d.novel_id);  // selectNovel 会自动启动轮询
+}
+
+// ── Status polling ─────────────────────────
+
+async function pollStatus(novelId) {
+  try {
+    const [status, logs] = await Promise.all([
+      fetch(`${API}/api/novels/${novelId}/status`).then(r => r.json()),
+      fetch(`${API}/api/novels/${novelId}/logs?last_n=${_devLogOpen ? 200 : 30}`).then(r => r.json()).catch(() => ({logs:[]})),
+    ]);
+
+    // current_task 非空说明后台线程在跑（即使 DB status 尚未同步为 writing）
+    const isRunning = status.status === 'init' || status.status === 'writing' || !!status.current_task;
+
+    // 更新侧边栏徽标
+    document.querySelectorAll('.novel-item').forEach(el => {
+      if (el.onclick && el.onclick.toString().includes(novelId)) {
+        const meta = el.querySelector('.meta');
+        if (meta) {
+          const badge = meta.querySelector('.status-badge');
+          if (badge) badge.textContent = statusLabel(status.status);
+          badge.className = `status-badge status-${status.status}`;
+        }
+      }
+    });
+
+    // 局部更新进度 banner（不重绘整页）
+    const counter = document.getElementById('progress-counter');
+    if (counter) {
+      counter.textContent = `${status.done_chapters}/${status.total_chapters} 章 · ${(status.total_words/10000).toFixed(1)}万字`;
+    }
+    const lastCh = document.getElementById('last-chapter-info');
+    if (lastCh && status.last_chapter) {
+      const ch = status.last_chapter;
+      const icon = ch.status === 'done' ? '✅' : ch.status === 'failed' ? '❌' : '⏳';
+      lastCh.innerHTML = `最新章节: <span style="color:var(--text)">第${ch.chapter_no}章 ${ch.title||''}</span> <span style="margin-left:4px">${icon}</span>`;
+    }
+
+    // 更新当前任务信息
+    const taskEl = document.getElementById('current-task-info');
+    if (taskEl) {
+      taskEl.innerHTML = _formatTaskInfo(status.current_task);
+    }
+
+    // 停止已请求但尚未生效时，更新按钮状态（仅在任务确实还在运行时才处理）
+    if (status.stop_requested && isRunning) {
+      const btn = document.getElementById('stop-btn');
+      if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+      const banner = document.getElementById('status-banner');
+      if (banner) {
+        const dot = banner.querySelector('div[style*="border-radius:50%"]');
+        if (dot) dot.style.background = 'var(--warn)';
+        const label = banner.querySelector('span[style*="font-weight:600"]');
+        if (label) { label.textContent = '正在立即停止...'; label.style.color = 'var(--warn)'; }
+      }
+    }
+
+    // 更新日志面板（devlog panel）
+    if (_devLogOpen && logs.logs) {
+      _rawDevLogs = logs.logs;
+      _renderDevLogs();
+    }
+
+    if (isRunning) {
+      _writeStartTime = 0;
+      // 若写作状态栏未渲染（页面是在 paused 状态下加载的），立即重绘
+      if (!document.getElementById('status-banner') && currentNovelId === novelId) {
+        await loadNovelDetail(novelId);
+      }
+      pollTimeoutId = setTimeout(() => pollStatus(novelId), 2000);
+    } else if (_writeStartTime > 0 && Date.now() - _writeStartTime < 30000) {
+      // 启动宽限期（30s）：后台任务可能还没来得及把 DB 状态改为 writing，继续轮询
+      pollTimeoutId = setTimeout(() => pollStatus(novelId), 2000);
+    } else {
+      // 任务结束：刷新整页数据 + 发通知
+      _writeStartTime = 0;
+      stopStatusPolling();
+      _devLogCount = 0;
+      if (currentNovelId === novelId) {
+        const msg = status.status === 'done'   ? '✅ 全部写作完成！'
+                  : status.status === 'paused' ? '✅ 本卷写作完成，可继续写下一卷'
+                  : '✅ 初始化完成，可以开始写作';
+        showToast(msg);
+        await loadNovelDetail(novelId);
+      }
+      await loadNovels();
+    }
+  } catch(e) {
+    console.error('Poll error:', e);
+    pollTimeoutId = setTimeout(() => pollStatus(novelId), 3000);
+  }
+}
+
+function startStatusPolling(novelId) {
+  stopStatusPolling();
+  _devLogCount = 0;
+  pollTimeoutId = setTimeout(() => pollStatus(novelId), 1000);
+}
+
+function stopStatusPolling() {
+  if (pollTimeoutId) { clearTimeout(pollTimeoutId); pollTimeoutId = null; }
+}
+
+// ── Toast ─────────────────────────────────
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ── Volume sub-tab switching ─────────────────
+function switchVolTab(vno) {
+  window._activeVolumeTab = vno;
+  const data = window._switchVolTabData;
+  if (!data) return;
+
+  // Update tab active state
+  document.querySelectorAll('#vol-tab-bar .tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.getElementById(`vol-tab-${vno}`);
+  if (activeTab) activeTab.classList.add('active');
+
+  // Re-render chapter body
+  const body = document.getElementById('vol-chapter-body');
+  if (!body) return;
+
+  const chs = data.byVolume[vno] || [];
+  const volTitle = data.volTitleMap[vno] || `第${vno}卷`;
+  const done = chs.filter(c => c.status === 'done').length;
+  const totalWords = chs.reduce((s, c) => s + (c.word_count || 0), 0);
+  const info = (data.volInfoMap || {})[vno] || {};
+  const goalHtml = info.goal ? `
+    <div style="margin-bottom:.5rem">
+      <span style="color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">卷目标　</span>
+      <span style="font-size:.82rem;color:var(--text)">${info.goal}</span>
+    </div>` : '';
+  const arcHtml = info.arc ? `
+    <div>
+      <span style="color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">核心冲突　</span>
+      <span style="font-size:.82rem;color:var(--text)">${info.arc}</span>
+    </div>` : '';
+  const focusBlock = (goalHtml || arcHtml) ? `
+    <div style="background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.2);border-radius:6px;padding:.6rem .9rem;margin-bottom:.85rem;line-height:1.7">
+      ${goalHtml}${arcHtml}
+    </div>` : '';
+
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;flex-wrap:wrap">
+      <span style="color:var(--accent);font-weight:600;font-size:1rem">第${vno}卷</span>
+      <span style="color:var(--text);font-size:.95rem;font-weight:500">${volTitle}</span>
+      <button class="btn btn-ghost" style="padding:2px 10px;font-size:.72rem"
+        onclick="copyVolTitle(this, ${vno}, '${volTitle.replace(/'/g,"\\'")}')">复制卷名</button>
+      <span style="color:var(--muted);font-size:.75rem;margin-left:auto">${done}/${chs.length}章 · ${(totalWords/10000).toFixed(1)}万字</span>
+    </div>
+    ${focusBlock}
+    <div class="chapter-list" style="max-height:none">
+      ${chs.length ? chs.map(c => `
+        <div class="chapter-item" style="cursor:pointer;padding-left:1rem"
+             onclick="openChapterModal(${c.chapter_no})"
+             onmouseenter="this.style.background='rgba(108,99,255,.08)'"
+             onmouseleave="this.style.background=''">
+          <span class="ch-no">#${c.chapter_no}</span>
+          <span class="ch-title" style="color:var(--accent)">${c.title || '(无标题)'}</span>
+          <span class="ch-words">${(c.word_count||0)}字</span>
+          <span class="ch-status">
+            ${c.status==='done'?'✅':c.status==='failed'?'❌':'⏳'}
+          </span>
+          ${window.currentNovelStatus !== 'completed' ? `<button class="btn btn-ghost" style="padding:2px 8px;font-size:0.7rem;margin-left:4px"
+            onclick="event.stopPropagation();regenChapter(${c.chapter_no})">↺ 重生成</button>` : ''}
+        </div>
+      `).join('') : '<div class="empty">本卷暂无章节</div>'}
+    </div>
+  `;
+}
+
+async function copyVolTitle(btn, vno, title) {
+  const text = `第${vno}卷 ${title}`;
+  await _copyText(text, btn, '卷名已复制');
+}
+
+// ── Dev Log Panel ─────────────────────
+let _devLogFilter = 'all';
+let _devLogOpen = false;
+let _devLogCount = 0;
+
+function toggleDevLog() {
+  _devLogOpen = !_devLogOpen;
+  const panel = document.getElementById('devlog-panel');
+  const fab = document.getElementById('log-fab');
+  panel.classList.toggle('open', _devLogOpen);
+  if (fab) fab.classList.toggle('active', _devLogOpen);
+  if (_devLogOpen && currentNovelId) _fetchDevLogs();
+}
+
+function filterForeshadows(state, btn) {
+  document.querySelectorAll('.fshadow-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const items = document.querySelectorAll('#fshadow-list .fshadow-item');
+  items.forEach(item => {
+    item.style.display = (state === 'all' || item.dataset.state === state) ? '' : 'none';
+  });
+}
+
+function setLogFilter(f) {
+  _devLogFilter = f;
+  document.querySelectorAll('.devlog-filter').forEach(b => b.classList.remove('active'));
+  document.getElementById(`devlog-filter-${f}`)?.classList.add('active');
+  _renderDevLogs();
+}
+
+let _rawDevLogs = [];
+
+async function _fetchDevLogs() {
+  if (!currentNovelId) return;
+  try {
+    const data = await fetch(`${API}/api/novels/${currentNovelId}/logs?last_n=200`).then(r => r.json());
+    _rawDevLogs = data.logs || [];
+    _renderDevLogs();
+  } catch(e) {}
+}
+
+function _renderDevLogs() {
+  const el = document.getElementById('devlog-content');
+  if (!el) return;
+  let lines = _rawDevLogs;
+  if (_devLogFilter === 'error') lines = lines.filter(l => l.includes('ERROR') || l.includes('FAIL'));
+  else if (_devLogFilter === 'warn') lines = lines.filter(l => l.includes('WARNING') || l.includes('WARN'));
+  if (!lines.length) { el.innerHTML = '<div style="color:#5a6075;padding:4px 0">暂无日志</div>'; return; }
+  el.innerHTML = lines.map(line => {
+    const isErr = line.includes('ERROR') || line.includes('FAIL');
+    const isWarn = line.includes('WARNING');
+    const cls = isErr ? 'dl-error' : isWarn ? 'dl-warn' : 'dl-info';
+    // Extract time portion HH:MM:SS
+    const timeMatch = line.match(/(\d{2}:\d{2}:\d{2})/);
+    const t = timeMatch ? timeMatch[1] : '';
+    // Strip timestamp/path prefix, keep message
+    const msg = line.replace(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}[.,]\d*\s*\|\s*\w+\s*\|\s*[\w./]+:\w+:\d+\s*-\s*/, '')
+                    .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[^ ]*\s*-?\s*/, '');
+    return `<div class="devlog-line ${cls}"><span class="dl-time">${t}</span><span class="dl-msg">${escHtml(msg)}</span></div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
+// ── Init ──────────────────────────────────
+checkHealth();
+loadNovels();
+setInterval(() => { checkHealth(); if(currentNovelId) loadNovels(); }, 30000);
+</script>
+</body>
+</html>
